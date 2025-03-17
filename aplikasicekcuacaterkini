@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cek Cuaca</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #87CEEB, #f5f5f5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+  
+        }
+        
+        .header {
+            background-color: #FFD700;
+            padding: 10px;
+            border-radius: 10px 10px 0 0;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .weather-icon {
+            margin: 20px 0;
+        }
+        
+        .temperature {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .weather-info-grid {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+        }
+        
+        .weather-info-grid div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .weather-info-grid strong {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        #city-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px 0 0 8px;
+            font-size: 16px;
+        }
+        
+        #search-button {
+            padding: 10px 15px;
+            background-color: #2c8844;
+            color: white;
+            border: none;
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        #search-button:hover {
+            background-color: #2a6439;
+        }
+        
+        .error-message {
+            color: #cc0000;
+            padding: 10px;
+            background-color: #ffeeee;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .loading {
+            text-align: center;
+            display: none;
+            color: #2a6439;
+            font-style: italic;
+        }
+        
+        #weather-info {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Cek Cuaca Terkini</h2>
+        <div class="input-group">
+            <input type="text" id="city-input" placeholder="Input nama kota..." autocomplete="off">
+            <button id="search-button">Cari</button>
+        </div>
+        <div id="loading" class="loading">Sedang memuat data cuaca...</div>
+        <div id="error-message" class="error-message"></div>
+        <div id="weather-info" style="border-radius: 12px; border: 2px solid #FFD700;">
+            <div class="header" id="city-name"></div>
+            <div class="weather-info-grid" style=" padding-left: 90px; padding-right: 90px; padding-top: 15px; padding-bottom: 15px;">
+                <div>
+                    <div class="weather-icon">
+                        <img id="weather-icon" src="" alt="Kondisi Cuaca">
+                    </div>
+                    <div class="temperature" id="temperature"></div>
+                </div>
+                <div>
+                    <div>
+                        <strong>Humidity</strong> <span id="humidity">
+                    </div>
+                    <div>
+                        <strong>Wind</strong> <span id="wind-speed"></span>
+                    </div>
+                    <div>
+                        <strong>Direction</strong> <span id="wind-direction"></span>
+                    </div>
+                    <div>
+                        <strong>Updated</strong> <span id="last-updated"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const cityInput = document.getElementById('city-input');
+        const searchButton = document.getElementById('search-button');
+        const weatherInfoDiv = document.getElementById('weather-info');
+        const errorMessageDiv = document.getElementById('error-message');
+        const loadingDiv = document.getElementById('loading');
+        
+        const cityNameElement = document.getElementById('city-name');
+        const temperatureElement = document.getElementById('temperature');
+        const humidityElement = document.getElementById('humidity');
+        const windSpeedElement = document.getElementById('wind-speed');
+        const windDirectionElement = document.getElementById('wind-direction');
+        const lastUpdatedElement = document.getElementById('last-updated');
+        const weatherIconElement = document.getElementById('weather-icon');
+        
+        const apiKey = 'c4e250ad3ef6488c9db55516251703';
+        
+        async function getWeatherData(city) {
+            showLoading(true);
+            showError(false);
+            showWeatherInfo(false);
+            
+            try {
+                const url = `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${encodeURIComponent(city)}&lang=id`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error.message || 'Terjadi kesalahan saat mengambil data cuaca');
+                }
+                
+                const data = await response.json();
+                
+                displayWeather(data);
+                
+            } catch (error) {
+                showError(true, error.message || 'Terjadi kesalahan saat mengambil data cuaca. Pastikan nama kota valid.');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        function displayWeather(data) {
+            cityNameElement.textContent = `${data.location.name}, ${data.location.country}`;
+            temperatureElement.textContent = `${data.current.temp_c}°C`;
+            humidityElement.textContent = `${data.current.humidity}%`;
+            windSpeedElement.textContent = `${data.current.wind_kph} km/jam`;
+            windDirectionElement.textContent = data.current.wind_dir;
+            
+            const lastUpdated = new Date(data.current.last_updated_epoch * 1000);
+            const formattedDate = lastUpdated.toLocaleString('id-ID', { 
+                day: 'numeric', 
+                month: 'long', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            lastUpdatedElement.textContent = formattedDate;
+            
+            weatherIconElement.src = `https:${data.current.condition.icon}`;
+            weatherIconElement.alt = data.current.condition.text;
+            
+            showWeatherInfo(true);
+        }
+        
+        function showLoading(show) {
+            loadingDiv.style.display = show ? 'block' : 'none';
+        }
+        
+        function showError(show, message = '') {
+            errorMessageDiv.style.display = show ? 'block' : 'none';
+            if (show) {
+                errorMessageDiv.textContent = message;
+            }
+        }
+        
+        function showWeatherInfo(show) {
+            weatherInfoDiv.style.display = show ? 'block' : 'none';
+        }
+        
+        searchButton.addEventListener('click', () => {
+            const city = cityInput.value.trim();
+            if (city) {
+                getWeatherData(city);
+            } else {
+                showError(true, 'Nama kota tidak boleh kosong.');
+            }
+        });
+    </script>
+</body>
+</html>
